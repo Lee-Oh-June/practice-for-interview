@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Interview Master Vault v1.2</title>
+    <style>
+        :root { --primary: #2c3e50; --secondary: #34495e; --bg: #f4f7f6; --accent: #27ae60; --danger: #e74c3c; }
+        body { font-family: 'Pretendard', sans-serif; margin: 0; display: flex; height: 100vh; background: var(--bg); overflow-x: hidden; -webkit-tap-highlight-color: transparent; }
+        
+        /* 사이드바 */
+        #sidebar { width: 280px; background: #fff; border-right: 1px solid #ddd; display: flex; flex-direction: column; flex-shrink: 0; transition: 0.3s; }
+        .sidebar-header { padding: 25px 20px; border-bottom: 1px solid #eee; }
+        #cat-list { flex: 1; overflow-y: auto; padding: 15px; }
+        .sidebar-footer { padding: 15px; border-top: 1px solid #eee; background: #fcfcfc; }
+
+        .cat-item { padding: 12px 15px; cursor: pointer; border-radius: 8px; margin-bottom: 5px; font-size: 0.9rem; display: flex; justify-content: space-between; align-items: center; transition: 0.2s; }
+        .cat-item:hover { background: #f0f2f5; }
+        .cat-item.active { background: var(--primary); color: white; font-weight: bold; }
+        
+        /* 메인 영역 */
+        #main-content { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; align-items: center; }
+        
+        /* 입력 영역 */
+        #input-section { width: 100%; max-width: 800px; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); margin-bottom: 30px; border: 1px solid #e0e6ed; }
+        .input-guide { font-size: 0.8rem; color: #555; background: #f8faff; padding: 10px; border-radius: 8px; border-left: 4px solid var(--accent); margin-bottom: 15px; }
+        
+        textarea#raw-input { width: 100%; height: 100px; padding: 12px; border: 1px solid #ddd; border-radius: 8px; resize: vertical; margin-bottom: 10px; font-family: inherit; font-size: 0.9rem; box-sizing: border-box; }
+        
+        /* 인터뷰 카드 */
+        #card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; width: 100%; max-width: 1200px; }
+        .card { height: 420px; perspective: 1000px; cursor: pointer; }
+        .card-inner { position: relative; width: 100%; height: 100%; transition: transform 0.6s; transform-style: preserve-3d; }
+        .card.flipped .card-inner { transform: rotateY(180deg); }
+        .front, .back { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 20px; padding: 25px; box-sizing: border-box; display: flex; flex-direction: column; box-shadow: 0 8px 16px rgba(0,0,0,0.1); }
+        
+        .front { background: white; border: 2px solid var(--primary); justify-content: center; align-items: center; text-align: center; }
+        .question-label { font-size: 0.7rem; color: var(--primary); font-weight: bold; margin-bottom: 15px; background: #eef2f7; padding: 4px 10px; border-radius: 4px; }
+        .question-text { font-size: 1.25rem; color: #222; line-height: 1.5; word-break: keep-all; font-weight: 600; }
+
+        .back { background: var(--primary); color: white; transform: rotateY(180deg); }
+        .answer-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 10px; }
+        .answer-text { font-size: 0.95rem; line-height: 1.7; overflow-y: auto; white-space: pre-wrap; flex: 1; padding-right: 5px; }
+        
+        /* 버튼 및 UI */
+        .btn { padding: 12px 15px; border-radius: 8px; border: none; cursor: pointer; font-weight: bold; transition: 0.2s; font-size: 0.85rem; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-accent { background: var(--accent); color: white; }
+        .btn-outline { background: transparent; border: 1px solid #ddd; width: 100%; margin-bottom: 8px; }
+        
+        .speaker-btn { background: rgba(255,255,255,0.2); border: none; color: white; width: 45px; height: 45px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; }
+        .delete-card { position: absolute; top: 15px; right: 15px; background: none; border: none; color: #ccc; cursor: pointer; font-size: 1.1rem; z-index: 10; }
+
+        /* 모바일 대응 스택 */
+        @media (max-width: 768px) {
+            body { flex-direction: column; overflow-y: auto; }
+            #sidebar { width: 100%; height: auto; border-right: none; }
+            #cat-list { max-height: 200px; }
+            #main-content { padding: 15px; }
+            #card-grid { grid-template-columns: 1fr; }
+            .card { height: 450px; }
+        }
+    </style>
+</head>
+<body>
+    <nav id="sidebar">
+        <div class="sidebar-header">
+            <h2 style="margin:0; color:var(--primary); font-size: 1.3rem;">🎙️ Master Vault</h2>
+            <p style="font-size:0.75rem; color:#888; margin-top:5px;">Professional Interview Trainer</p>
+            <button class="btn btn-primary" style="width:100%; margin-top:15px;" onclick="addCategory()">+ 분류군 추가</button>
+        </div>
+        <div id="cat-list">
+            <div class="cat-item active" onclick="renderCards('all')"><span>전체 리스트</span></div>
+        </div>
+        <div class="sidebar-footer">
+            <button class="btn btn-outline" onclick="exportData()">💾 백업 저장</button>
+            <button class="btn btn-outline" onclick="document.getElementById('import-file').click()">📂 데이터 불러오기</button>
+            <input type="file" id="import-file" style="display:none" onchange="importData(event)">
+        </div>
+    </nav>
+
+    <main id="main-content">
+        <section id="input-section">
+            <div class="input-guide">
+                <strong>💡 모바일 가이드:</strong> 질문 한 줄 / 답변 한 줄 형식입니다. <br>
+                영어 면접을 위해 <strong>원어민 속도(1.2x)</strong>로 세팅되었습니다.
+            </div>
+            <textarea id="raw-input" placeholder="[입력 예시]&#10;What are your strengths?&#10;My main strength is analytical rigor."></textarea>
+            <div style="display:flex; gap:10px;">
+                <input type="text" id="target-cat" placeholder="분류명 (예: GGGI)" style="flex:1; padding:12px; border-radius:8px; border:1px solid #ddd; font-size: 0.85rem;">
+                <button class="btn btn-accent" onclick="parseAndAdd()">등록하기</button>
+            </div>
+        </section>
+
+        <div id="card-grid"></div>
+    </main>
+
+    <script>
+        let interviewData = JSON.parse(localStorage.getItem('interview_vault_v1_2')) || [];
+        let currentFilter = 'all';
+
+        // --- [모바일 최적화 음성 엔진] ---
+        const synth = window.speechSynthesis;
+
+        function speak(text) {
+            if (!text) return;
+            
+            // 재생 중인 것 중단 (모바일 필수)
+            synth.cancel();
+
+            setTimeout(() => {
+                const u = new SpeechSynthesisUtterance(text);
+                u.lang = 'en-US';  // 영어 'en-US', 한국어 'ko-KR'
+                u.rate = 1.2;      // 속도: 자연스럽고 빠른 속도 (1.2)
+                u.pitch = 1.2;    // 고저: 약간 생기있게
+                u.volume = 1.0;
+
+                // 긴 문장 끊김 방지 (모바일 버그 대응)
+                u.onend = () => { synth.cancel(); };
+                
+                synth.speak(u);
+            }, 50);
+        }
+
+        // 모바일 엔진 깨우기 (첫 터치 시)
+        document.body.addEventListener('touchstart', () => {
+            const silent = new SpeechSynthesisUtterance("");
+            synth.speak(silent);
+        }, { once: true });
+        // ------------------------------
+
+        function parseAndAdd() {
+            const raw = document.getElementById('raw-input').value.trim();
+            const cat = document.getElementById('target-cat').value.trim() || "기본 분류";
+            if(!raw) return;
+
+            const segments = raw.split(/\n\s*\n/);
+            segments.forEach(seg => {
+                const lines = seg.split('\n').map(l => l.trim()).filter(l => l !== "");
+                if(lines.length >= 2) {
+                    interviewData.push({
+                        id: Date.now() + Math.random(),
+                        question: lines[0],
+                        answer: lines.slice(1).join('\n'),
+                        category: cat
+                    });
+                }
+            });
+            document.getElementById('raw-input').value = '';
+            saveAndRender();
+        }
+
+        function renderCards(filter = 'all') {
+            currentFilter = filter;
+            const grid = document.getElementById('card-grid');
+            grid.innerHTML = '';
+            renderCategories();
+
+            let filtered = interviewData;
+            if(filter !== 'all') filtered = interviewData.filter(d => d.category === filter);
+
+            filtered.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                // 특수문자 이스케이프 처리
+                const qText = item.question.replace(/'/g, "\\'").replace(/"/g, "&quot;");
+                const aText = item.answer.replace(/'/g, "\\'").replace(/"/g, "&quot;").replace(/\n/g, " ");
+
+                card.innerHTML = `
+                    <div class="card-inner">
+                        <button class="delete-card" onclick="deleteCard(${item.id}, event)">✕</button>
+                        <div class="front" onclick="handleFrontClick(this.parentElement.parentElement, '${qText}')">
+                            <div class="question-label">${item.category}</div>
+                            <div class="question-text">Q. ${item.question}</div>
+                            <div style="margin-top:25px; font-size:0.75rem; color:#627d98; background:#f0f4f8; padding:6px 15px; border-radius:20px;">Tap to Listen & Flip</div>
+                        </div>
+                        <div class="back" onclick="this.parentElement.parentElement.classList.toggle('flipped')">
+                            <div class="answer-header">
+                                <span style="font-size:0.8rem; font-weight:bold; letter-spacing:1px;">MY ANSWER</span>
+                                <button class="speaker-btn" onclick="event.stopPropagation(); speak('${aText}')">🔊</button>
+                            </div>
+                            <div class="answer-text">${item.answer}</div>
+                            <div style="text-align:center; font-size:0.7rem; opacity:0.5; margin-top:10px;">(Tap to go back)</div>
+                        </div>
+                    </div>
+                `;
+                grid.prepend(card);
+            });
+        }
+
+        window.handleFrontClick = function(cardEl, text) {
+            cardEl.classList.add('flipped');
+            speak(text);
+        };
+
+        function renderCategories() {
+            const list = document.getElementById('cat-list');
+            list.innerHTML = `<div class="cat-item ${currentFilter === 'all' ? 'active' : ''}" onclick="renderCards('all')"><span>전체 리스트</span></div>`;
+            const cats = [...new Set(interviewData.map(d => d.category))];
+            cats.forEach(c => {
+                const div = document.createElement('div');
+                div.className = `cat-item ${currentFilter === c ? 'active' : ''}`;
+                div.innerHTML = `<span>${c}</span><span style="font-size:0.7rem; opacity:0.5;">${interviewData.filter(d => d.category === c).length}</span>`;
+                div.onclick = () => renderCards(c);
+                list.appendChild(div);
+            });
+        }
+
+        function deleteCard(id, e) {
+            e.stopPropagation();
+            if(confirm("이 질문 세트를 삭제할까요?")) {
+                interviewData = interviewData.filter(d => d.id !== id);
+                saveAndRender();
+            }
+        }
+
+        function addCategory() {
+            const name = prompt("분류군 이름:");
+            if(name) renderCards(name);
+        }
+
+        function saveAndRender() {
+            localStorage.setItem('interview_vault_v1_2', JSON.stringify(interviewData));
+            renderCards(currentFilter);
+        }
+
+        function exportData() {
+            const blob = new Blob([JSON.stringify(interviewData)], {type: "application/json"});
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `interview_vault_backup.json`;
+            a.click();
+        }
+
+        function importData(e) {
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                interviewData = JSON.parse(ev.target.result);
+                saveAndRender();
+            };
+            reader.readAsText(e.target.files[0]);
+        }
+
+        renderCards();
+    </script>
+</body>
+</html>
