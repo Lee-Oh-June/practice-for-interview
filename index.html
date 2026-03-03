@@ -83,7 +83,7 @@
         <section id="input-section">
             <div class="input-guide">
                 <strong>💡 모바일 가이드:</strong> 질문 한 줄 / 답변 한 줄 형식입니다. <br>
-                영어 면접을 위해 <strong>원어민 속도(1.2x)</strong>로 세팅되었습니다.
+                영어 면접을 위해 <strong>원어민 속도</strong>로 세팅되었습니다.
             </div>
             <textarea id="raw-input" placeholder="[입력 예시]&#10;What are your strengths?&#10;My main strength is analytical rigor."></textarea>
             <div style="display:flex; gap:10px;">
@@ -111,8 +111,8 @@
             setTimeout(() => {
                 const u = new SpeechSynthesisUtterance(text);
                 u.lang = 'en-US';  // 영어 'en-US', 한국어 'ko-KR'
-                u.rate = 1.2;      // 속도: 자연스럽고 빠른 속도 (1.2)
-                u.pitch = 1.2;    // 고저: 약간 생기있게
+                u.rate = 1.1;      // 속도: 자연스럽고 빠른 속도 (1.1)
+                u.pitch = 1.1;    // 고저: 약간 생기있게
                 u.volume = 1.0;
 
                 // 긴 문장 끊김 방지 (모바일 버그 대응)
@@ -245,3 +245,4 @@
     </script>
 </body>
 </html>
+
